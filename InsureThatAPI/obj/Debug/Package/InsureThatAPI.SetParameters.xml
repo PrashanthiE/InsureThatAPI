@@ -1,0 +1,5 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<parameters>
+  <setParameter name="IIS Web Application Name" value="Default Web Site/" />
+  <setParameter name="MasterDataEntities-Web.config Connection String" value="metadata=res://*/Models.InsureThatModel.csdl|res://*/Models.InsureThatModel.ssdl|res://*/Models.InsureThatModel.msl;provider=System.Data.SqlClient;provider connection string=&quot;data source=insurethat.c0enjhxzijzh.us-east-2.rds.amazonaws.com,1433;initial catalog=InsureThatDB;persist security info=True;user id=mindtech;password=Mindtech4321;MultipleActiveResultSets=True;App=EntityFramework&quot;" />
+</parameters>
