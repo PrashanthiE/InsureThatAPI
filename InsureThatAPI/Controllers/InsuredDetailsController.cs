@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
@@ -6,6 +6,8 @@ using System.Net.Http;
 using System.Web.Http;
 using InsureThatAPI.Models;
 using InsureThatAPI.CommonMethods;
+using static InsureThatAPI.CommonMethods.EnumInsuredDetails;
+
 namespace InsureThatAPI.Controllers
 {
     public class InsuredDetailsController : ApiController
@@ -36,114 +38,184 @@ namespace InsureThatAPI.Controllers
         // POST: api/InsuredDetails
         public InsuredDetailsRef Post([FromBody]InsuredDetails value)
         {
-            InsuredDetailsClass insureddetails = new InsuredDetailsClass();
-            InsuredDetailsRef insuredref = new InsuredDetailsRef();          
-        
+            InsuredDetailsClass insureddetails = new InsuredDetailsClass();          
+            EnumInsuredDetails.InsuredResult resultEnum = new EnumInsuredDetails.InsuredResult();
+            InsuredDetailsRef insuredref = new InsuredDetailsRef();
+            List<string> Errors = new List<string>();
+            insuredref.ErrorMessage = new List<string>();
             if (string.IsNullOrWhiteSpace(value.ABN.Trim()))
-            {
-                insuredref.Status = "Failure";
-                insuredref.ErrorMessage = "ABN is required";
-                return insuredref;
+            {               
+                Errors.Add("ABN is required");                        
             }
             if (string.IsNullOrWhiteSpace(value.EmailID.Trim()))
-            {
-                insuredref.Status = "Failure";
-                insuredref.ErrorMessage = "EmailID is required";
-                return insuredref;
+            {           
+                Errors.Add("EmailID is required");          
             }
-            if (value.ClientType.HasValue && value.ClientType>0)
-            {
-                insuredref.Status = "Failure";
-                insuredref.ErrorMessage = "Client Type is required";
-                return insuredref;
+            if (value.ClientType==null || value.ClientType<=0)
+            { 
+                Errors.Add("Client Type is required");             
             }
             if (string.IsNullOrWhiteSpace(value.Title.Trim()))
             {
-                insuredref.Status = "Failure";
-                insuredref.ErrorMessage = "Title is required";
-                return insuredref;
+                Errors.Add("Title is required");              
             }
             if (string.IsNullOrWhiteSpace(value.FirstName.Trim()))
-            {
-                insuredref.Status = "Failure";
-                insuredref.ErrorMessage = "First Name is required";
-                return insuredref;
+            {             
+                Errors.Add("First Name is required");             
             }
             if (string.IsNullOrWhiteSpace(value.Lastname.Trim()))
-            {
-                insuredref.Status = "Failure";
-                insuredref.ErrorMessage = "Last Name is required";
-                return insuredref;
+            {               
+                Errors.Add("Last Name is required");               
             }
-            if (value.AddressID.HasValue || value.AddressID==null || value.AddressID<=0)
+            if ( value.AddressID == null || value.AddressID <= 0)
             {
-                insuredref.Status = "Failure";
-                insuredref.ErrorMessage = "AddressID is required";
-                return insuredref;
+                Errors.Add("AddressID is required");
             }
-            if (value.PostalAddressID.HasValue || value.PostalAddressID == null || value.PostalAddressID <= 0)
-            {
-                insuredref.Status = "Failure";
-                insuredref.ErrorMessage = "Postal AddressID is required";
-                return insuredref;
+            if (value.PostalAddressID == null || value.PostalAddressID <= 0)
+            {             
+                Errors.Add("Postal AddressID is required");          
             }
             if (string.IsNullOrWhiteSpace(value.PhoneNo.Trim()))
-            {
-                insuredref.Status = "Failure";
-                insuredref.ErrorMessage = "Phone Number is required";
-                if(value.PhoneNo.Count()>9 || value.PhoneNo.Count()<9)
+            {              
+                Errors.Add("Phone Number is required");
+                if(value.PhoneNo.Count()> (int)InsuredResult.PhoneNumberLength || value.PhoneNo.Count()< (int)InsuredResult.PhoneNumberLength)
                 {
-                    insuredref.ErrorMessage = "Phone Number is required, must not be more than 9 digits and less than 9 digits.";
-                }
-                return insuredref;
+                    Errors.Add("Phone Number is required, must not be more than 9 digits and less than 9 digits.");
+                }              
             }
             if (string.IsNullOrWhiteSpace(value.MobileNo.Trim()))
             {
-                insuredref.Status = "Failure";
-                insuredref.ErrorMessage = "Mobile Number is required";
-                if (value.MobileNo.Count() > 9 || value.MobileNo.Count() < 9)
+               
+                Errors.Add("Mobile Number is required");
+                if (value.MobileNo.Count() > (int)InsuredResult.PhoneNumberLength || value.MobileNo.Count() < (int)InsuredResult.PhoneNumberLength)
                 {
-                    insuredref.ErrorMessage = "Mobile Number is required, must not be more than 9 digits and less than 9 digits.";
+                    Errors.Add("Mobile Number is required, must not be more than 9 digits and less than 9 digits.");
                 }
-                return insuredref;
+              
             }
-            if (value.DOB==null)
+            if (value.DOB == null)
+            {
+                Errors.Add("DOB is required");
+            }
+            if (Errors!=null && Errors.Count() > 0)
             {
                 insuredref.Status = "Failure";
-                insuredref.ErrorMessage = "DOB is required";              
+                insuredref.ErrorMessage = Errors;
                 return insuredref;
             }
-            int? result = insureddetails.InsertUpdateInsuredDetails(null,value);
-            if(result.HasValue && result==1)
+            else
             {
-                insuredref.Status = "Success";
-                         
-            }
-            else if(result.HasValue && result==-1)
-            {
-                insuredref.Status = "Failure";
-                insuredref.ErrorMessage = "Failed to insert.";
-                return insuredref;
-            }
-            else if (result.HasValue && result == -3)
-            {
-                insuredref.Status = "Failure";
-                insuredref.ErrorMessage = "Email Id already exists.";
-                return insuredref;
+                int? result = insureddetails.InsertUpdateInsuredDetails(null, value);
+                if (result.HasValue && result>0)
+                {
+                    insuredref.Status = "Success";
+                    insuredref.Insured.InsuredID = result.Value;
+                }
+                else if (result.HasValue && result == (int)InsuredResult.Exception)
+                {
+                    insuredref.Status = "Failure";
+                    insuredref.ErrorMessage.Add("Failed to insert.");
+                   
+                }
+               
+                else if (result.HasValue && result == (int)InsuredResult.EmailAlreadyExists)
+                {
+                    insuredref.Status = "Failure";
+                    insuredref.ErrorMessage.Add("Email Id already exists.");
+                   
+                }
             }
             return insuredref;
         }
 
         // PUT: api/InsuredDetails/5
-        public int? Put(int id, [FromBody]InsuredDetails value)
+        public InsuredDetailsRef Put(int id, [FromBody]InsuredDetails value)
         {
             int? result = 0;
             InsuredDetailsClass insureddetails = new InsuredDetailsClass();
+            InsuredDetailsRef insuredref = new InsuredDetailsRef();
+            List<string> Errors = new List<string>();
+            insuredref.ErrorMessage = new List<string>();
+            if (string.IsNullOrWhiteSpace(value.ABN.Trim()))
+            {
+                Errors.Add("ABN is required");
+            }
+            if (string.IsNullOrWhiteSpace(value.EmailID.Trim()))
+            {
+                Errors.Add("EmailID is required");
+            }
+            if (value.ClientType == null || value.ClientType <= 0)
+            {
+                Errors.Add("Client Type is required");
+            }
+            if (string.IsNullOrWhiteSpace(value.Title.Trim()))
+            {
+                Errors.Add("Title is required");
+            }
+            if (string.IsNullOrWhiteSpace(value.FirstName.Trim()))
+            {
+                Errors.Add("First Name is required");
+            }
+            if (string.IsNullOrWhiteSpace(value.Lastname.Trim()))
+            {
+                Errors.Add("Last Name is required");
+            }
+            if (value.AddressID == null || value.AddressID <= 0)
+            {
+                Errors.Add("AddressID is required");
+            }
+            if (value.PostalAddressID == null || value.PostalAddressID <= 0)
+            {
+                Errors.Add("Postal AddressID is required");
+            }
+            if (string.IsNullOrWhiteSpace(value.PhoneNo.Trim()))
+            {
+                Errors.Add("Phone Number is required");
+                if (value.PhoneNo.Count() > (int)InsuredResult.PhoneNumberLength || value.PhoneNo.Count() < (int)InsuredResult.PhoneNumberLength)
+                {
+                    Errors.Add("Phone Number is required, must not be more than 9 digits and less than 9 digits.");
+                }
+            }
+            if (string.IsNullOrWhiteSpace(value.MobileNo.Trim()))
+            {
+
+                Errors.Add("Mobile Number is required");
+                if (value.MobileNo.Count() > (int)InsuredResult.PhoneNumberLength || value.MobileNo.Count() < (int)InsuredResult.PhoneNumberLength)
+                {
+                    Errors.Add("Mobile Number is required, must not be more than 9 digits and less than 9 digits.");
+                }
+
+            }
+            if (value.DOB == null)
+            {
+                Errors.Add("DOB is required");
+            }
+            if (Errors != null && Errors.Count() > 0)
+            {
+                insuredref.Status = "Failure";
+                insuredref.ErrorMessage = Errors;
+               
+            }
             if (id > 0)
             {
                 result = insureddetails.InsertUpdateInsuredDetails(id, value);
+                if(result == (int)InsuredResult.UpdatedSuccess)
+                {
+                    insuredref.Status = "Success";
+                }
+                if (result == (int)InsuredResult.Exception)
+                {
+                    insuredref.Status = "Failure";
+                    insuredref.ErrorMessage.Add("Failed to insert.");
+                }
             }
-            return result;
+            else
+            {
+                insuredref.Status = "Failure";
+                insuredref.ErrorMessage.Add("Insured ID is required.");
+            }
+            return insuredref;
+
         }
 
         // DELETE: api/InsuredDetails/5
