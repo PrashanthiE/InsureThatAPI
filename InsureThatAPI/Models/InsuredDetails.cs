@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Web;
@@ -11,7 +11,7 @@ namespace InsureThatAPI.Models
        
         public InsuredDetails Insured { get; set; }
         public string Status { get; set; }
-        public string ErrorMessage { get; set; }
+        public List<string> ErrorMessage { get; set; }
     }
       public class InsuredDetails
     {
